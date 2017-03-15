@@ -936,16 +936,6 @@ function genericPrintNoParens(path, options, print) {
         "declarations"
       );
 
-      parts = [
-        n.kind,
-        " ",
-        printed[0],
-        indent(
-          options.tabWidth,
-          concat(printed.slice(1).map(p => concat([",", line, p])))
-        )
-      ];
-
       // We generally want to terminate all variable declarations with a
       // semicolon, except when they in the () part of for loops.
       var parentNode = path.getParentNode();
@@ -956,12 +946,30 @@ function genericPrintNoParens(path, options, print) {
           namedTypes.ForOfStatement.check(parentNode)) ||
         (namedTypes.ForAwaitStatement &&
           namedTypes.ForAwaitStatement.check(parentNode));
+      
+      var noSplit = isParentForLoop && parentNode.body !== n;
+      var parts;
 
-      if (!(isParentForLoop && parentNode.body !== n)) {
-        parts.push(";");
+      if (noSplit) {
+          return group(concat([
+            n.kind,
+            " ",
+            printed[0],
+            indent(
+              options.tabWidth,
+              concat(printed.slice(1).map(p => concat([",", line, p])))
+            )
+          ]));
+      } else {
+        return join(hardline, printed.map(function(decl) {
+          return group(concat([
+            n.kind,
+            " ",
+            decl,
+            ";"
+          ]));
+        }))
       }
-
-      return group(concat(parts));
     case "VariableDeclarator":
       return n.init
         ? concat([
